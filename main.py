@@ -39,7 +39,7 @@ def load_vgg(sess, vgg_path):
     w2 = graph.get_tensor_by_name(vgg_keep_prob_tensor_name)
     w3 = graph.get_tensor_by_name(vgg_layer3_out_tensor_name)
     w4 = graph.get_tensor_by_name(vgg_layer4_out_tensor_name)
-    w5 = graph.get_tensor_by_nname(vgg_layer7_out_tensor_name)
+    w5 = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
     
     
     return w1, w2, w3, w4, w5
