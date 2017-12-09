@@ -129,7 +129,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     print()
     sess.run(tf.global_variables_initializer())
     
-    for epoch in epochs:
+    for epoch in range(epochs):
         print ("Epoch, ", str(epoch + 1))
         count = 0
         for image, label in get_batches_fn(batch_size):
