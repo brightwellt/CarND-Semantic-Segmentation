@@ -101,7 +101,8 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     # TODO: Implement function
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
     cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, correct_label))
-    train_op = tf.train.adagradOptimizer(learning_rate).minimize(cross_entropy_loss)
+
+    train_op = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cross_entropy_loss)
     return logits, train_op, cross_entropy_loss
 
 tests.test_optimize(optimize)
@@ -123,12 +124,22 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
-
+    print("Training")
+    print()
     sess.run(tf.global_variables_initializer())
     
     for epoch in epochs:
+        print ("Epoch, ", str(epoch + 1))
+        count = 0
         for image, label in get_batches_fn(batch_size):
-            loss = session.run
+            _, loss = sess.run([train_op, cross_entropy_loss],
+                               feed_dict={input_image: image,
+                                          correct_label: label,
+                                          keep_prob: 0.5,
+                                          learning_rate: 0.001})
+            count += 1
+            print("Loss {0:2d}= {1:2.4f}".format(count, loss))
+            
     pass
 
 
@@ -141,7 +152,6 @@ def run():
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
-    num_epochs = 6
     
 
     # Download pretrained vgg model
@@ -161,6 +171,15 @@ def run():
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # TODO: Build NN using load_vgg, layers, and optimize function
+
+        # Parameters:
+        epochs = 50
+        batch_size = 5
+        correct_label = tf.placeholder(dtype=tf.int32,
+                                       shape=[None, None, None, num_classes],
+                                       name='correct_label')
+        learning_rate = tf.placeholder(dtype=tf.float32, name='learning_rate')
+        
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
