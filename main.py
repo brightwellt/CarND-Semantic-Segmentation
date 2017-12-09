@@ -56,14 +56,36 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
     # TODO: Implement function
-    conv_1x1 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding='same',
+    # Get layer 7 from ?x5x18x4096 to ?x5x18x2
+    conv_1x1_7 = tf.layers.conv2d(vgg_layer7_out, num_classes, 1, padding='same',
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
-    output = tf.layers.conv2d_transpose(conv_1x1, num_classes, 4, 2, padding='same',
+    # Get layer 7 to ?x10*36x2
+    output7 = tf.layers.conv2d_transpose(conv_1x1_7, num_classes, 4, 2, padding='same',
                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
-    # blah = tf.add(input, pool_4, padding='same',
-     #       kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # Get layer 4 from ?x10x36x512 to ?x10x36x2
+    output4 = tf.layers.conv2d(vgg_layer4_out, num_classes, 1, padding='same',
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # Add together (skip layer)
+    combined_layer1 = tf.add(output7, output4)
     
-    return None
+    # Get combined layer to same x y as layer 3 (?x20x72x2)
+    fcn_layer2 = tf.layers.conv2d_transpose(combined_layer1, num_classes, 4, 2, padding='same',
+                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # Layer 3 convolution from ?x20x72x256 yo ?x20x72x2 
+    output3 = tf.layers.conv2d(vgg_layer3_out, num_classes, 1, padding='same',
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+
+    # Add together (skip layer)
+    combined_layer2 = tf.add(output3, fcn_layer2)
+
+    # Scale from ?x20x72x2 to ?x160x576x2
+    upsampled = tf.layers.conv2d_transpose(combined_layer2, num_classes, 16, 8, padding='same',
+                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
+       
+    return upsampled
 tests.test_layers(layers)
 
 
@@ -77,9 +99,11 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
     # TODO: Implement function
-    logits = tf.reshape(input, -1, num_classes)
+    logits = tf.reshape(nn_last_layer, (-1, num_classes))
     cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits, correct_label))
-    return logits, None, cross_entropy_loss
+    train_op = tf.train.adagradOptimizer(learning_rate).minimize(cross_entropy_loss)
+    return logits, train_op, cross_entropy_loss
+
 tests.test_optimize(optimize)
 
 
@@ -99,10 +123,15 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
     # TODO: Implement function
+
+    sess.run(tf.global_variables_initializer())
+    
     for epoch in epochs:
         for image, label in get_batches_fn(batch_size):
             loss = session.run
     pass
+
+
 tests.test_train_nn(train_nn)
 
 
@@ -135,7 +164,7 @@ def run():
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
         layer_output = layers(layer3_out, layer4_out, layer7_out, num_classes)
 
-        optimize(nn_last_layer, correct_label, learning_rate, num_classes)
+        logits, train_opn cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
         # TODO: Train NN using the train_nn function
         train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
              correct_label, keep_prob, learning_rate):
